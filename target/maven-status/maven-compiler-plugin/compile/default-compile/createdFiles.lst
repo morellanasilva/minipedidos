@@ -1,0 +1,6 @@
+com/minipedidos/config/RabbitMQConfig.class
+com/minipedidos/consumer/PedidoConsumer.class
+com/minipedidos/MinipedidosApplication.class
+com/minipedidos/producer/PedidoProducer.class
+com/minipedidos/controller/PedidoController.class
+com/minipedidos/model/Pedido.class

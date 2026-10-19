@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniPedidos - RabbitMQ</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f4f9;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .contenedor {
+            background: white;
+            width: 450px;
+            max-width: 90%;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+
+        h1 {
+            text-align: center;
+            color: #193a68;
+        }
+
+        .subtitulo {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        input, select, button {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        input, select {
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            margin-top: 25px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1746b5;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        #resultado {
+            display: none;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 7px;
+            white-space: pre-line;
+        }
+
+        .exito {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+    <h1>MiniPedidos</h1>
+    <p class="subtitulo">
+        Laboratorio Desarrollo Cloud - RabbitMQ
+    </p>
+
+    <form id="formPedido">
+
+        <label for="cliente">Nombre del cliente</label>
+        <input
+            type="text"
+            id="cliente"
+            required
+            placeholder="Ingrese nombre del cliente"
+        >
+
+        <label for="producto">Producto</label>
+        <select id="producto" required>
+            <option value="">Seleccione un producto</option>
+            <option value="Notebook">Notebook</option>
+            <option value="Teclado">Teclado</option>
+            <option value="Mouse">Mouse</option>
+            <option value="Monitor">Monitor</option>
+        </select>
+
+        <label for="cantidad">Cantidad</label>
+        <input
+            type="number"
+            id="cantidad"
+            min="1"
+            value="1"
+            required
+        >
+
+        <button type="submit" id="btnEnviar">
+            Enviar pedido
+        </button>
+
+    </form>
+
+    <div id="resultado" role="status" aria-live="polite"></div>
+
+</div>
+
+<script>
+
+    const formulario = document.getElementById("formPedido");
+    const resultado = document.getElementById("resultado");
+    const boton = document.getElementById("btnEnviar");
+
+    formulario.addEventListener("submit", async function(event) {
+
+        event.preventDefault();
+
+        const cliente = document.getElementById("cliente").value.trim();
+        const producto = document.getElementById("producto").value;
+        const cantidad = Number(document.getElementById("cantidad").value);
+
+        resultado.style.display = "none";
+
+        if (!cliente || !producto || !Number.isInteger(cantidad) || cantidad < 1) {
+            mostrarResultado("Complete correctamente todos los campos.", false);
+            return;
+        }
+
+        const pedido = {
+            cliente: cliente,
+            producto: producto,
+            cantidad: cantidad
+        };
+
+        boton.disabled = true;
+
+        try {
+
+            const respuesta = await fetch("/api/pedidos", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(pedido)
+            });
+
+            if (!respuesta.ok) {
+                throw new Error("HTTP " + respuesta.status);
+            }
+
+            const datos = await respuesta.json();
+
+            mostrarResultado(
+                "Pedido aceptado para procesamiento\n" +
+                "ID: " + datos.pedidoId + "\n" +
+                "Estado: " + datos.estado,
+                true
+            );
+
+            formulario.reset();
+            document.getElementById("cantidad").value = 1;
+
+        } catch (error) {
+
+            mostrarResultado(
+                "Error al enviar el pedido: " + error.message,
+                false
+            );
+
+        } finally {
+            boton.disabled = false;
+        }
+
+    });
+
+    function mostrarResultado(mensaje, correcto) {
+
+        resultado.textContent = mensaje;
+        resultado.className = correcto ? "exito" : "error";
+        resultado.style.display = "block";
+
+    }
+
+</script>
+
+</body>
+</html>
