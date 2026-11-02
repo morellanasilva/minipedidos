@@ -1,8 +1,10 @@
-
 package com.minipedidos.consumer;
 
 import com.minipedidos.config.RabbitMQConfig;
 import com.minipedidos.model.Pedido;
+
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -10,6 +12,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class PedidoConsumer {
+
+    // Registra qué pedidos ya tuvieron un fallo temporal
+    private final Set<Long> pedidosIntentados =
+            ConcurrentHashMap.newKeySet();
 
     @RabbitListener(
         queues = RabbitMQConfig.COLA_PEDIDOS,
@@ -28,69 +34,45 @@ public class PedidoConsumer {
         System.out.println("Producto: " + pedido.getProducto());
         System.out.println("Cantidad: " + pedido.getCantidad());
 
-        // CASO 1: ERROR PERMANENTE
-        // Rechazar inmediatamente, sin reintentos.
+        // CASO 1: Error permanente
         if ("ERROR".equalsIgnoreCase(pedido.getCliente())) {
 
             System.out.println(
-                "ERROR PERMANENTE: pedido "
-                + pedido.getPedidoId()
+                "ERROR PERMANENTE: pedido " +
+                pedido.getPedidoId()
             );
 
             throw new AmqpRejectAndDontRequeueException(
-                "Error permanente. Enviar mensaje a DLQ."
+                "Error permanente de procesamiento"
             );
         }
 
-        // CASO 2: ERROR TEMPORAL
-        // Simulacion didactica con dos intentos.
+        // CASO 2: Error temporal
         if ("TEMPORAL".equalsIgnoreCase(pedido.getCliente())) {
 
-            for (int intento = 1; intento <= 2; intento++) {
+            // Primera vez: provoca un fallo
+            if (pedidosIntentados.add(pedido.getPedidoId())) {
 
                 System.out.println(
-                    "Intento de procesamiento: " + intento
+                    "ERROR TEMPORAL: primer intento fallido"
                 );
 
-                if (intento == 1) {
-
-                    System.out.println(
-                        "ERROR TEMPORAL: servicio no disponible"
-                    );
-
-                    System.out.println(
-                        "Esperando 1 segundo para reintentar..."
-                    );
-
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-
-                        Thread.currentThread().interrupt();
-
-                        throw new AmqpRejectAndDontRequeueException(
-                            "Procesamiento interrumpido", e
-                        );
-                    }
-
-                } else {
-
-                    System.out.println(
-                        "Servicio recuperado en el segundo intento"
-                    );
-
-                    System.out.println(
-                        "Pedido procesado correctamente"
-                    );
-                }
+                throw new RuntimeException(
+                    "Servicio temporalmente no disponible"
+                );
             }
 
-            System.out.println("==============================");
-            return;
+            // Segundo intento: procesamiento correcto
+            System.out.println(
+                "Servicio recuperado: pedido procesado"
+            );
+
+            pedidosIntentados.remove(pedido.getPedidoId());
         }
 
-        // CASO 3: PEDIDO NORMAL
+        // CASO 3: Pedido procesado correctamente
         System.out.println("Estado: " + pedido.getEstado());
+
         System.out.println("Pedido procesado correctamente");
         System.out.println("==============================");
     }
