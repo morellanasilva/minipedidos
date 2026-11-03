@@ -1,6 +1,8 @@
 /workspaces/minipedidos/src/main/java/com/minipedidos/MinipedidosApplication.java
 /workspaces/minipedidos/src/main/java/com/minipedidos/config/RabbitMQConfig.java
+/workspaces/minipedidos/src/main/java/com/minipedidos/consumer/KafkaPedidoConsumer.java
 /workspaces/minipedidos/src/main/java/com/minipedidos/consumer/PedidoConsumer.java
 /workspaces/minipedidos/src/main/java/com/minipedidos/controller/PedidoController.java
 /workspaces/minipedidos/src/main/java/com/minipedidos/model/Pedido.java
+/workspaces/minipedidos/src/main/java/com/minipedidos/producer/KafkaPedidoProducer.java
 /workspaces/minipedidos/src/main/java/com/minipedidos/producer/PedidoProducer.java
